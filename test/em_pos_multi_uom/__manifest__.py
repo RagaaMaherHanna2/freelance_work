@@ -16,7 +16,6 @@
     'assets': {
         'point_of_sale.assets': [
             'em_pos_multi_uom/static/src/js/pos.js',
-            'em_pos_multi_uom/static/src/js/refundChangeUomButton.js',
         ],
         'web.assets_qweb': [
             'em_pos_multi_uom/static/src/xml/**/*',

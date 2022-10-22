@@ -22,21 +22,20 @@ _logger = logging.getLogger(__name__)
 
 
 class PosConfig(models.Model):
-    _inherit = 'pos.config'
+    _inherit = 'pos.config' 
 
     allow_multi_uom = fields.Boolean('Product multi uom', default=True)
-
 
 class ProductMultiUom(models.Model):
     _name = 'product.multi.uom'
     _order = "sequence desc"
 
-    multi_uom_id = fields.Many2one('uom.uom', 'Unit of measure')
-    price = fields.Float("Sale Price", default=0)
-    sequence = fields.Integer("Sequence", default=1)
+    multi_uom_id = fields.Many2one('uom.uom','Unit of measure')
+    price = fields.Float("Sale Price",default=0)
+    sequence = fields.Integer("Sequence",default=1)
     barcode = fields.Char("Barcode")
-    product_tmp_id = fields.Many2one("product.template", string="Product")
-    product_id = fields.Many2one("product.product", string="Product")
+    product_tmp_id = fields.Many2one("product.template",string="Product")
+    product_id = fields.Many2one("product.product",string="Product")
 
     # @api.depends('product_tmp_id')
     # def _compute_product_tmp_id(self):
@@ -47,14 +46,14 @@ class ProductMultiUom(models.Model):
     # @api.multi
     @api.onchange('multi_uom_id')
     def unit_id_change(self):
-        domain = {'multi_uom_id': [('category_id', '=', self.product_tmp_id.uom_id.category_id.id)]}
+        domain = {'multi_uom_id': [('category_id', '=', self.product_tmp_id.uom_id.category_id.id)]}        
         return {'domain': domain}
 
     @api.model
     def create(self, vals):
         if 'barcode' in vals:
-            barcodes = self.env['product.product'].sudo().search([('barcode', '=', vals['barcode'])])
-            barcodes2 = self.search([('barcode', '=', vals['barcode'])])
+            barcodes = self.env['product.product'].sudo().search([('barcode','=',vals['barcode'])])
+            barcodes2 = self.search([('barcode','=',vals['barcode'])])
             if barcodes or barcodes2:
                 raise UserError(_('A barcode can only be assigned to one product !'))
         return super(ProductMultiUom, self).create(vals)
@@ -62,8 +61,8 @@ class ProductMultiUom(models.Model):
     # @api.multi
     def write(self, vals):
         if 'barcode' in vals:
-            barcodes = self.env['product.product'].sudo().search([('barcode', '=', vals['barcode'])])
-            barcodes2 = self.search([('barcode', '=', vals['barcode'])])
+            barcodes = self.env['product.product'].sudo().search([('barcode','=',vals['barcode'])])
+            barcodes2 = self.search([('barcode','=',vals['barcode'])])
             if barcodes or barcodes2:
                 raise UserError(_('A barcode can only be assigned to one product !'))
         return super(ProductMultiUom, self).write(vals)
@@ -71,9 +70,9 @@ class ProductMultiUom(models.Model):
 
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
-
+    
     has_multi_uom = fields.Boolean('Has multi UOM')
-    multi_uom_ids = fields.One2many('product.multi.uom', 'product_tmp_id')
+    multi_uom_ids = fields.One2many('product.multi.uom','product_tmp_id')
 
     @api.model
     def _name_search(self, name, args=None, operator='ilike', limit=100, name_get_uid=None):
@@ -92,7 +91,7 @@ class ProductTemplate(models.Model):
     @api.model
     def create(self, vals):
         if 'barcode' in vals:
-            barcodes = self.env['product.multi.uom'].search([('barcode', '=', vals['barcode'])])
+            barcodes = self.env['product.multi.uom'].search([('barcode','=',vals['barcode'])])
             if barcodes:
                 raise UserError(_('A barcode can only be assigned to one product !'))
         return super(ProductTemplate, self).create(vals)
@@ -100,11 +99,10 @@ class ProductTemplate(models.Model):
     # @api.multi
     def write(self, vals):
         if 'barcode' in vals:
-            barcodes = self.env['product.multi.uom'].search([('barcode', '=', vals['barcode'])])
+            barcodes = self.env['product.multi.uom'].search([('barcode','=',vals['barcode'])])
             if barcodes:
                 raise UserError(_('A barcode can only be assigned to one product !'))
         return super(ProductTemplate, self).write(vals)
-
 
 class ProductProduct(models.Model):
     _inherit = 'product.product'
@@ -127,6 +125,8 @@ class ProductProduct(models.Model):
 class PosOrder(models.Model):
     _inherit = "pos.order"
 
+
+
     def _prepare_invoice_line(self, order_line):
         return {
             'product_id': order_line.product_id.id,
@@ -139,11 +139,12 @@ class PosOrder(models.Model):
         }
 
 
+
 class PosOrderLine(models.Model):
     _inherit = "pos.order.line"
 
-    product_uom_id = fields.Many2one('uom.uom', string='Product UoM', store=True)
-    product_uom = fields.Many2one('uom.uom', 'Unit of measure')
+    product_uom_id = fields.Many2one('uom.uom', string='Product UoM',store=True)
+    product_uom = fields.Many2one('uom.uom','Unit of measure')
 
     @api.onchange('product_uom')
     @api.constrains('product_uom')
@@ -151,6 +152,7 @@ class PosOrderLine(models.Model):
         for rec in self:
             if rec.product_uom:
                 rec.product_uom_id = rec.product_uom.id
+
 
     def _compute_total_cost(self, stock_moves):
         """
@@ -160,8 +162,7 @@ class PosOrderLine(models.Model):
         for line in self.filtered(lambda l: not l.is_total_cost_computed):
             product = line.product_id
             if line._is_product_storable_fifo_avco() and stock_moves:
-                product_cost = product._compute_average_price(0, line.qty,
-                                                              stock_moves.filtered(lambda ml: ml.product_id == product))
+                product_cost = product._compute_average_price(0, line.qty, stock_moves.filtered(lambda ml: ml.product_id == product))
             else:
                 product_cost = product.standard_price
             if product.uom_id != line.product_uom:
@@ -179,7 +180,7 @@ class PosOrderLine(models.Model):
 
 
 class StockPicking(models.Model):
-    _inherit = 'stock.picking'
+    _inherit='stock.picking'
 
     def _prepare_stock_move_vals(self, first_line, order_lines):
         res = super(StockPicking, self)._prepare_stock_move_vals(first_line, order_lines)
@@ -191,9 +192,7 @@ class StockPicking(models.Model):
         """We'll create some picking based on order_lines"""
 
         pickings = self.env['stock.picking']
-        stockable_lines = lines.filtered(
-            lambda l: l.product_id.type in ['product', 'consu'] and not float_is_zero(l.qty,
-                                                                                      precision_rounding=l.product_uom.rounding))
+        stockable_lines = lines.filtered(lambda l: l.product_id.type in ['product', 'consu'] and not float_is_zero(l.qty, precision_rounding=l.product_uom.rounding))
         if not stockable_lines:
             return pickings
         positive_lines = stockable_lines.filtered(lambda l: l.qty > 0)
@@ -234,8 +233,11 @@ class StockPicking(models.Model):
         return pickings
 
 
+
+
 class StockMove(models.Model):
-    _inherit = 'stock.move'
+    _inherit='stock.move'
+
 
     def _create_out_svl(self, forced_quantity=None):
         """Create a `stock.valuation.layer` from `self`.
@@ -249,16 +251,14 @@ class StockMove(models.Model):
             valued_move_lines = move._get_out_move_lines()
             valued_quantity = 0
             for valued_move_line in valued_move_lines:
-                valued_quantity += valued_move_line.product_uom_id._compute_quantity(valued_move_line.qty_done,
-                                                                                     move.product_id.uom_id)
+                valued_quantity += valued_move_line.product_uom_id._compute_quantity(valued_move_line.qty_done, move.product_id.uom_id)
             if float_is_zero(forced_quantity or valued_quantity, precision_rounding=move.product_id.uom_id.rounding):
                 continue
             svl_vals = move.product_id._prepare_out_svl_vals(forced_quantity or valued_quantity, move.company_id)
             svl_vals.update(move._prepare_common_svl_vals())
 
             if forced_quantity:
-                svl_vals[
-                    'description'] = 'Correction of %s (modification of past move)' % move.picking_id.name or move.name
+                svl_vals['description'] = 'Correction of %s (modification of past move)' % move.picking_id.name or move.name
             svl_vals['description'] += svl_vals.pop('rounding_adjustment', '')
             if move.product_id.uom_id != move.product_uom:
                 currency = move.company_id.currency_id
@@ -283,8 +283,7 @@ class StockMove(models.Model):
             'category': 'other',
         }
 
-    def _generate_valuation_lines_data(self, partner_id, qty, debit_value, credit_value, debit_account_id,
-                                       credit_account_id, description):
+    def _generate_valuation_lines_data(self, partner_id, qty, debit_value, credit_value, debit_account_id, credit_account_id, description):
         # This method returns a dictionary to provide an easy extension hook to modify the valuation lines (see purchase for an example)
         self.ensure_one()
         debit_line_vals = {
@@ -320,8 +319,7 @@ class StockMove(models.Model):
             if not price_diff_account:
                 price_diff_account = self.product_id.categ_id.property_account_creditor_price_difference_categ
             if not price_diff_account:
-                raise UserError(
-                    _('Configuration error. Please configure the price difference account on the product or its category to process this operation.'))
+                raise UserError(_('Configuration error. Please configure the price difference account on the product or its category to process this operation.'))
 
             rslt['price_diff_line_vals'] = {
                 'name': self.name,
@@ -355,5 +353,5 @@ class AccountMoveLine(models.Model):
         if order and self.product_id.uom_id != self.product_uom_id:
             currency = self.currency_id
             ratio = self.product_id.uom_id.ratio
-            price_unit = currency.round(self.product_id.standard_price / ratio)
+            price_unit = currency.round(self.product_id.standard_price/ratio)
         return price_unit

@@ -18,6 +18,7 @@
                 </div>
             </field>
         </record>
+
         <record model="ir.ui.view" id="product_template_only_form_view">
             <field name="name">product.template.view.form.easy</field>
             <field name="model">product.template</field>

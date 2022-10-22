@@ -9,9 +9,10 @@ const { useState, useRef } = owl.hooks;
 const AbstractAwaitablePopup = require('point_of_sale.AbstractAwaitablePopup');
 const PosDB = require('point_of_sale.DB');
 
-    models.load_fields('product.product',['has_multi_uom','multi_uom_ids']);
 
-    models.load_models([{
+models.load_fields('product.product',['has_multi_uom','multi_uom_ids']);
+
+models.load_models([{
     model: 'product.multi.uom',
     condition: function(self){ return self.config.allow_multi_uom; },
     fields: ['multi_uom_id','price','barcode'],
@@ -52,7 +53,6 @@ const PosDB = require('point_of_sale.DB');
         },
         add_barcode_uom:function(barcode){
             this.product_barcode_uom = barcode;
-
         },
     });
 
@@ -90,7 +90,7 @@ const PosDB = require('point_of_sale.DB');
                     if(pos_multi_op[i].barcode == code.code){
                         line.set_quantity(1);
                         line.set_unit_price(pos_multi_op[i].price);
-                        line.set_product_uom(pos_multi_op[i].multi_uom_id);
+                        line.set_product_uom(pos_multi_op[i].multi_uom_id[0]);
                         line.price_manually_set = true;
                     }
                 }
@@ -101,6 +101,7 @@ const PosDB = require('point_of_sale.DB');
 
     class MulitUOMWidget extends AbstractAwaitablePopup {
         multi_uom_button(event){
+            // const value = $(event.target).html();
             var uom_id = $(event.target).data('uom_id');
             var price = $(event.target).data('price');
             var line = this.env.pos.get_order().get_selected_orderline();
@@ -157,48 +158,45 @@ const PosDB = require('point_of_sale.DB');
     });
 
     Registries.Component.add(ChangeUOMButton);
+
+
     var _super_orderline = models.Orderline.prototype;
     models.Orderline = models.Orderline.extend({
-
         initialize: function(attr, options) {
             _super_orderline.initialize.call(this,attr,options);
             this.wvproduct_uom = '';
         },
         set_product_uom: function(uom_id){
-            var uom = this.pos.units_by_id[uom_id]
-            this.uom_id =  uom_id;
+            this.wvproduct_uom = this.pos.units_by_id[uom_id];
             this.trigger('change',this);
         },
 
         get_unit: function(){
-            console.log('get_unit this uom_id', this.uom_id)
+
             var unit_id = this.product.uom_id;
             if(!unit_id){
                 return undefined;
             }
-            if (unit_id.length > 1){
-            unit_id = this.pos.units_by_id[unit_id[0]];
-            }
-            else{
-            unit_id = this.pos.units_by_id[unit_id];
-            }
-
+            unit_id = unit_id[0];
             if(!this.pos){
                 return undefined;
             }
-            return unit_id;
+//            console.log('wvproduct_uom', this.wvproduct_uom)
+//            console.log('this.pos.units_by_id[unit_id]', this.pos.units_by_id[unit_id])
+            return this.wvproduct_uom == '' ? this.pos.units_by_id[unit_id] : this.wvproduct_uom;
         },
 
-//        export_as_JSON: function(){
-//            var unit_id = this.product.uom_id;
-//            var json = _super_orderline.export_as_JSON.call(this);
-//            json.product_uom = unit_id;
-//            return json;
-//        },
-//        init_from_JSON: function(json){
-//            _super_orderline.init_from_JSON.apply(this,arguments);
-//            this.product_uom = json.product_uom;
-//        },
+        export_as_JSON: function(){
+            var unit_id = this.product.uom_id;
+            var json = _super_orderline.export_as_JSON.call(this);
+            json.product_uom = this.wvproduct_uom == '' ? unit_id[0] : this.wvproduct_uom.id;
+            console.log('export_as_JSON', json)
+            return json;
+        },
+        init_from_JSON: function(json){
+            _super_orderline.init_from_JSON.apply(this,arguments);
+            this.wvproduct_uom = json.product_uom;
+        },
 
     });
 });
