@@ -152,6 +152,14 @@ class PosOrderLine(models.Model):
             if rec.product_uom:
                 rec.product_uom_id = rec.product_uom.id
 
+    @api.model
+    def rpc_return_uom(self, line):
+        pol = self.browse(line)
+        print(line)
+        print(pol.name)
+        print(pol.product_uom.id)
+        return pol.product_uom
+
     def _compute_total_cost(self, stock_moves):
         """
         Compute the total cost of the order lines.
